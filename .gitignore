@@ -1,0 +1,62 @@
+# Python specific
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+
+# Environment and dependencies
+env/
+venv/
+*.egg-info/
+*.egg
+*.whl
+pip-log.txt
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Configuration files
+config.yaml
+*.ini
+*.cfg
+
+# Datasets
+data/
+*.csv
+*.xlsx
+*.json
+*.parquet
+*.h5
+
+# Logs and output
+logs/
+*.log
+*.out
+*.err
+
+# Model artifacts
+models/
+*.h5
+*.pkl
+*.joblib
+*.sav
+*.onnx
+
+# Temporary or backup files
+*.bak
+*.tmp
+*.swp
+*.DS_Store
+Thumbs.db
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Build files
+build/
+dist/
+*.manifest
+*.spec
