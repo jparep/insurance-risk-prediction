@@ -10,15 +10,19 @@ from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
+import joblib
 
 # Logging Configuration
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
                     handlers=[logging.StreamHandler(), logging.FileHandler('app.log')])
 
-# Global Variables
-DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data')
-FILE_PATH = os.path.join(DIR, 'insurance.csv')
+# File directory
+DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../model_development')
+
+# Data file path
+FILE_PATH = os.path.join(DIR, '/data/insurance.csv')
+MODEL_PATH = os.path.join(DIR, '/model/model.joblib')
 
 def load_data(file_path):
     """Load data into DataFrame"""
@@ -138,6 +142,14 @@ def model_evaluation(model, X_test, y_test):
     for metric, value in eval_mx.items():
         print(f"{metric}: {value:.2f}")
 
+def save_model(model, model_path):
+    try:
+        dump.joblib(model, model_path)
+        logging.info(f"Model saved successfully.")
+    except Exception as e:
+        logging.error(f'Error while saving model file: {str(e)}')
+        raise
+
 def main():
     try:
         # Load data
@@ -164,6 +176,9 @@ def main():
 
         # Evaluate the model
         model_evaluation(best_model, X_test, y_test)
+        
+        # Save Model
+        save_model(best_model, MODEL_PATH)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
