@@ -17,10 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler(), logging.FileHandler('app.log')])
 
 # Global Variables
-# Construct a relative path to the data directory
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data')
-
-# Get file path
 FILE_PATH = os.path.join(DIR, 'insurance.csv')
 
 def load_data(file_path):
@@ -39,11 +36,11 @@ def clean_data(df):
         # Handle negative or invalid 'age' values
         if 'age' in df.columns:
             df['age'] = df['age'].abs()
-        
-        # Convert 'children' to int and handle negatives
+
+        # Convert 'children' to Pandas nullable integer type (Int64)
         if 'children' in df.columns:
             df['children'] = df['children'].astype('Int64').abs()
-        
+
         # Map 'sex' to standardized values
         if 'sex' in df.columns:
             sex_mapping = {
@@ -52,7 +49,7 @@ def clean_data(df):
                 'man': 'Male', 'Man': 'Male', 'M': 'Male', 'm': 'Male',
             }
             df['sex'] = df['sex'].map(sex_mapping)
-        
+
         # Map 'region' to standardized values
         if 'region' in df.columns:
             region_map = {
@@ -60,12 +57,12 @@ def clean_data(df):
                 'northwest': 'Northwest', 'northeast': 'Northeast'
             }
             df['region'] = df['region'].map(region_map)
-        
-        # Handle 'charges' column: Remove '$' sign, convert to float, and drop rows with missing target
+
+        # Handle 'charges' column: Remove '$' sign, convert to float
         if 'charges' in df.columns:
             df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
             df = df.dropna(subset=['charges']).reset_index(drop=True)
-        
+
         # Remove rows with more than 5 missing values
         df = df[df.isnull().sum(axis=1) <= 5].reset_index(drop=True)
 
@@ -77,27 +74,29 @@ def clean_data(df):
 
 def preprocess_and_transform_data(X):
     """Preprocess and transform data into pipeline"""
-    
     # Get numerical and categorical columns
-    num_columns = X.select_dtypes(include=['int64','Int64', 'float64']).columns
-    cat_columns = X.select_dtypes(include=['objects']).columns
-    
-    # Create Preprocessing Pipelien for Numberical
+    num_columns = X.select_dtypes(include=['int64', 'Int64', 'float64']).columns
+    cat_columns = X.select_dtypes(include=['object']).columns
+
+    # Create preprocessing pipeline for numerical data
     num_pipeline = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='mean')),
         ('scaler', RobustScaler())
     ])
-    
-    # Create preprocessing pipeline for categorical
+
+    # Create preprocessing pipeline for categorical data
     cat_pipeline = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='most_frequent')),
         ('onehot', OneHotEncoder(handle_unknown='ignore'))
     ])
-    
-    return ColumnTransformer(transformers=[
+
+    # Combine preprocessing pipelines
+    preprocessor = ColumnTransformer(transformers=[
         ('num', num_pipeline, num_columns),
         ('cat', cat_pipeline, cat_columns)
     ])
+
+    return preprocessor
 
 def build_model(preprocessor):
     """Build Model Pipeline"""
@@ -109,17 +108,17 @@ def build_model(preprocessor):
 def model_evaluation(model, X_test, y_test):
     """Test the performance of the model"""
     y_pred = model.predict(X_test)
-    
+
     eval_mx = {
-        'MAE', mean_absolute_error(y_test, y_pred),
-        'MSE', mean_squared_error(y_test, y_pred),
-        'R2', r2_score(y_test, y_pred)
+        'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
+        'Mean Squared Error (MSE)': mean_squared_error(y_test, y_pred),
+        'R-squared (R2)': r2_score(y_test, y_pred)
     }
-    
-    # Print the evaluation metric
-    for key, value in eval_mx:
-        print(f"{key}: {value:2.f}%")
-    
+
+    # Print the evaluation metrics
+    print("\nModel Evaluation Metrics:")
+    for metric, value in eval_mx.items():
+        print(f"{metric}: {value:.2f}")
 
 def main():
     try:
@@ -128,23 +127,25 @@ def main():
 
         # Clean data
         df_cleaned = clean_data(df)
-        
-        # Seperate features and target
+
+        # Separate features and target
         X = df_cleaned.drop(columns=['charges'], axis=1)
         y = df_cleaned['charges']
-        
-        # Train test split
-        X_train, X_tst, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=12)
-        
+
+        # Train-test split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=12)
+
         # Preprocess and transform data
         preprocessor = preprocess_and_transform_data(X)
-        
+
         # Build Model
         model = build_model(preprocessor)
-        
+
         # Train the model
         model.fit(X_train, y_train)
 
+        # Evaluate the model
+        model_evaluation(model, X_test, y_test)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
