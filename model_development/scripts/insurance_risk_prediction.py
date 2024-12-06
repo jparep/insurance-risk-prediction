@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
@@ -34,25 +34,37 @@ def clean_data(df):
     """Preprocess data"""
     try:
         # Handle negative or invalid 'age' values
-        df['age'] = df['age'].abs()
+        if 'age' in df.columns:
+            df['age'] = df['age'].abs()
 
-        # Convert 'children' to integers and handle negatives
-        df['children'] = df['children'].astype('Int64').abs()
+        # Convert 'children' to Pandas nullable integer type (Int64)
+        if 'children' in df.columns:
+            df['children'] = df['children'].astype('Int64').abs()
 
         # Map 'sex' to standardized values
-        sex_mapping = {'female': 'Female', 'male': 'Male', 'man': 'Male', 'woman': 'Female'}
-        df['sex'] = df['sex'].map(sex_mapping)
+        if 'sex' in df.columns:
+            sex_mapping = {
+                'female': 'Female', 'woman': 'Female', 'Woman': 'Female',
+                'F': 'Female', 'f': 'Female', 'male': 'Male',
+                'man': 'Male', 'Man': 'Male', 'M': 'Male', 'm': 'Male',
+            }
+            df['sex'] = df['sex'].map(sex_mapping)
 
         # Map 'region' to standardized values
-        region_map = {'southwest': 'Southwest', 'southeast': 'Southeast',
-                      'northwest': 'Northwest', 'northeast': 'Northeast'}
-        df['region'] = df['region'].map(region_map)
+        if 'region' in df.columns:
+            region_map = {
+                'southwest': 'Southwest', 'southeast': 'Southeast',
+                'northwest': 'Northwest', 'northeast': 'Northeast'
+            }
+            df['region'] = df['region'].map(region_map)
 
         # Handle 'charges' column: Remove '$' sign, convert to float
-        df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
+        if 'charges' in df.columns:
+            df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
+            df = df.dropna(subset=['charges']).reset_index(drop=True)
 
-        # Drop rows with missing target values
-        df = df.dropna(subset=['charges']).reset_index(drop=True)
+        # Remove rows with more than 5 missing values
+        df = df[df.isnull().sum(axis=1) <= 5].reset_index(drop=True)
 
         logging.info("Data preprocessing completed successfully.")
         return df
@@ -90,18 +102,38 @@ def build_model(preprocessor):
     """Build Model Pipeline"""
     return Pipeline([
         ('preprocess', preprocessor),
-        ('model', Ridge(alpha=1.0))  # Default Ridge regularization
+        ('model', Ridge())  # Using Ridge regression for regularization
     ])
+
+def hyperparameter_tuning(model_pipeline, X_train, y_train):
+    """Tune hyperparameters"""
+    cv = KFold(n_splits=5, shuffle=True, random_state=12)
+
+    param_grid = {
+        'model__alpha': [0.1, 1.0, 10.0]  # Ridge regularization parameter
+    }
+
+    grid_search = GridSearchCV(estimator=model_pipeline,
+                               param_grid=param_grid,
+                               scoring='r2',
+                               cv=cv,
+                               n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+    logging.info(f"Best parameters: {grid_search.best_params_}")
+    return grid_search.best_estimator_
 
 def model_evaluation(model, X_test, y_test):
     """Evaluate model performance"""
     y_pred = model.predict(X_test)
+
     eval_mx = {
         'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
         'Mean Squared Error (MSE)': mean_squared_error(y_test, y_pred),
-        'R-squared (R2)': r2_score(y_test, y_pred) * 100
+        'R-squared (R2)': r2_score(y_test, y_pred),
+        'R-squared (R2) Percentage': r2_score(y_test, y_pred) * 100
     }
 
+    # Print the evaluation metrics
     print("\nModel Evaluation Metrics:")
     for metric, value in eval_mx.items():
         print(f"{metric}: {value:.2f}")
@@ -127,11 +159,11 @@ def main():
         # Build Model
         model_pipeline = build_model(preprocessor)
 
-        # Train the model
-        model_pipeline.fit(X_train, y_train)
+        # Train and tune model
+        best_model = hyperparameter_tuning(model_pipeline, X_train, y_train)
 
         # Evaluate the model
-        model_evaluation(model_pipeline, X_test, y_test)
+        model_evaluation(best_model, X_test, y_test)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
