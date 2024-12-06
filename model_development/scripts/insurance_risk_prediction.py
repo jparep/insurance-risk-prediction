@@ -3,9 +3,11 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 import logging
 
 # Logging Configuration
@@ -30,7 +32,7 @@ def load_data(file_path):
         logging.error(f"Error loading data from file {file_path}: {str(e)}")
         raise
 
-def preprocess_data(df):
+def clean_data(df):
     """Preprocess data"""
     try:
         # Handle negative or invalid 'age' values
@@ -72,13 +74,57 @@ def preprocess_data(df):
         logging.error(f"Error during preprocessing: {str(e)}")
         raise
 
+def preprocess_and_transform_data(X):
+    """Preprocess and transform data into pipeline"""
+    
+    # Get numerical and categorical columns
+    num_columns = X.select_dtypes(include=['int64','Int64', 'float64']).columns
+    cat_columns = X.select_dtypes(include=['objects']).columns
+    
+    # Create Preprocessing Pipelien for Numberical
+    num_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', RobustScaler())
+    ])
+    
+    # Create preprocessing pipeline for categorical
+    cat_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+    
+    return ColumnTransformer(transformers=[
+        ('num', num_pipeline, num_columns),
+        ('cat', cat_pipeline, cat_columns)
+    ])
+
+def build_model(preprocessor):
+    """Build Model Pipeline"""
+    return Pipeline([
+        ('preprocess', preprocessor),
+        ('model', LinearRegression())
+    ])
+    
+
+    
+    
+        
+
 def main():
     try:
         # Load data
         df = load_data(FILE_PATH)
 
-        # Preprocess data
-        df_cleaned = preprocess_data(df)
+        # Clean data
+        df_cleaned = clean_data(df)
+        
+        # Seperate features and target
+        X = df_cleaned.drop(columns=['charges'], axis=1)
+        y = df_cleaned['charges']
+        
+        # Preprocess and transform data
+        preprocessor = preprocess_and_transform_data(X)
+        model = build_model(preprocessor)
 
         # Output the cleaned data
         print(df_cleaned.head())
