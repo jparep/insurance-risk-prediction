@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.model_selection import train_test_split, KFold, GridSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
@@ -107,18 +107,22 @@ def build_model(preprocessor):
 
 def hyperparamter_tuning(model_pipeline, X_train, y_train):
     """Tuning hyperparameters"""
-    cv = StratifiedKFold(n_splits=5, shuffle=True, n_jobs=-1)
+    cv = KFold(n_splits=5, shuffle=True, random_state=12)
     
     param_grid = {
-        'n_inter': [2,5,10]
+       'preprocess__num__imputer__strategy': ['mean', 'median'],
+       'preprocess__num__scaler__quantile_range': [(25.0, 75.0), (10.0, 90.0)]
     }
     
     grid_search = GridSearchCV(estimator=model_pipeline,
+                               param_grid=param_grid,
+                               scoring='r2',
                                cv=cv,
-                               n_jobs=-1,
-                               )
-    best_model = grid_search.fit(X_train, y_train)
-    return best_model.best_estimator_
+                               n_jobs=-1)
+    
+    grid_search.fit(X_train, y_train)
+    logging.info(f"Best parameters: {grid_search.best_params_}")
+    return grid_search.best_estimator_
 
 def model_evaluation(best_model, X_test, y_test):
     """Test the performance of the model"""
@@ -127,7 +131,7 @@ def model_evaluation(best_model, X_test, y_test):
     eval_mx = {
         'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
         'Mean Squared Error (MSE)': mean_squared_error(y_test, y_pred),
-        'R-squared (R2)': r2_score(y_test, y_pred)
+        'R-squared (R2)': r2_score(y_test, y_pred) * 100
     }
 
     # Print the evaluation metrics
