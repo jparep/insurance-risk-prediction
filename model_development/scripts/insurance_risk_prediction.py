@@ -2,12 +2,12 @@
 import os
 import pandas as pd
 import numpy as np
-from sklearn.impute import SimpleImputer
+from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, KFold, GridSearchCV
-from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split, RepeatedKFold, GridSearchCV
+from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
 
@@ -80,7 +80,7 @@ def preprocess_and_transform_data(X):
 
     # Create preprocessing pipeline for numerical data
     num_pipeline = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='mean')),
+        ('imputer', IterativeImputer()),
         ('scaler', RobustScaler())
     ])
 
@@ -102,16 +102,17 @@ def build_model(preprocessor):
     """Build Model Pipeline"""
     return Pipeline([
         ('preprocess', preprocessor),
-        ('model', LinearRegression())
+        ('model', Ridge())
     ])
 
 def hyperparamter_tuning(model_pipeline, X_train, y_train):
     """Tuning hyperparameters"""
-    cv = KFold(n_splits=5, shuffle=True, random_state=12)
+    cv = RepeatedKFold(n_splits=5, n_repeats=3, random_state=12)
     
     param_grid = {
-       'preprocess__num__imputer__strategy': ['mean', 'median'],
-       'preprocess__num__scaler__quantile_range': [(25.0, 75.0), (10.0, 90.0)]
+        'preprocess__num__imputer__max_inter': [10, 20, 50],
+        'preprocess__num__scaler__quantile_range': [(25.0, 75.0), (10.0, 90.0)],
+        'model__alpha': [0.1, 1.0, 10.0] # Ridge regularization parameter
     }
     
     grid_search = GridSearchCV(estimator=model_pipeline,
@@ -131,13 +132,14 @@ def model_evaluation(best_model, X_test, y_test):
     eval_mx = {
         'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
         'Mean Squared Error (MSE)': mean_squared_error(y_test, y_pred),
-        'R-squared (R2)': r2_score(y_test, y_pred) * 100
+        'R-squared (R2)': r2_score(y_test, y_pred) * 100,
+        'Adjusted R-squared': 1 - (1- r2_score(y_test, y_pred)) ((len(y_test) - 1) / (len(y_test) - X_test.shape[1] - 1))
     }
 
     # Print the evaluation metrics
     print("\nModel Evaluation Metrics:")
     for metric, value in eval_mx.items():
-        print(f"{metric}: {value:.2f}")
+        print(f"{metric}: {value:.4f}")
 
 def main():
     try:
