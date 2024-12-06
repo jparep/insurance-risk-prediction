@@ -18,11 +18,11 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler(), logging.FileHandler('app.log')])
 
 # File directory
-DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../model_development')
+DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 # Data file path
-FILE_PATH = os.path.join(DIR, '/data/insurance.csv')
-MODEL_PATH = os.path.join(DIR, '/model/model.joblib')
+FILE_PATH = os.path.join(DIR, 'data', 'insurance.csv')
+MODEL_PATH = os.path.join(DIR, 'models', 'model.joblib')
 
 def load_data(file_path):
     """Load data into DataFrame"""
@@ -35,16 +35,27 @@ def load_data(file_path):
         raise
 
 def clean_data(df):
-    """Preprocess data"""
+    """
+    Cleans the input DataFrame by validating required columns, handling missing values,
+    and transforming specific columns as necessary.
+    """
     try:
+        # Required columns for validation
+        required_columns = ['age', 'children', 'sex', 'region', 'charges']
+        missing_cols = set(required_columns) - set(df.columns)
+        
+        # Check for missing columns
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+        
         # Handle negative or invalid 'age' values
         if 'age' in df.columns:
-            df['age'] = df['age'].abs()
-
-        # Convert 'children' to Pandas nullable integer type (Int64)
+            df['age'] = df['age'].abs()  # Convert negative ages to positive
+        
+        # Convert 'children' to integer and handle negatives
         if 'children' in df.columns:
-            df['children'] = df['children'].astype('Int64').abs()
-
+            df['children'] = df['children'].astype('Int64').abs()  # Convert and ensure positives
+        
         # Map 'sex' to standardized values
         if 'sex' in df.columns:
             sex_mapping = {
@@ -52,7 +63,7 @@ def clean_data(df):
                 'F': 'Female', 'f': 'Female', 'male': 'Male',
                 'man': 'Male', 'Man': 'Male', 'M': 'Male', 'm': 'Male',
             }
-            df['sex'] = df['sex'].map(sex_mapping)
+            df['sex'] = df['sex'].map(sex_mapping)  # Standardize gender values
 
         # Map 'region' to standardized values
         if 'region' in df.columns:
@@ -60,20 +71,21 @@ def clean_data(df):
                 'southwest': 'Southwest', 'southeast': 'Southeast',
                 'northwest': 'Northwest', 'northeast': 'Northeast'
             }
-            df['region'] = df['region'].map(region_map)
-
-        # Handle 'charges' column: Remove '$' sign, convert to float
+            df['region'] = df['region'].map(region_map)  # Standardize region values
+        
+        # Handle 'charges' column: Remove '$' sign and convert to float
         if 'charges' in df.columns:
             df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
-            df = df.dropna(subset=['charges']).reset_index(drop=True)
-
-        # Remove rows with more than 5 missing values
+            df = df.dropna(subset=['charges']).reset_index(drop=True)  # Drop rows with missing 'charges'
+        
+        # Remove rows with excessive missing values (e.g., more than 5 missing)
         df = df[df.isnull().sum(axis=1) <= 5].reset_index(drop=True)
 
         logging.info("Data preprocessing completed successfully.")
         return df
+
     except Exception as e:
-        logging.error(f"Error during preprocessing: {str(e)}")
+        logging.error(f"Error during data cleaning: {str(e)}")
         raise
 
 def preprocess_and_transform_data(X):
@@ -114,7 +126,7 @@ def hyperparameter_tuning(model_pipeline, X_train, y_train):
     cv = KFold(n_splits=5, shuffle=True, random_state=12)
 
     param_grid = {
-        'model__alpha': [0.1, 1.0, 10.0]  # Ridge regularization parameter
+        'model__alpha': np.logspace(-3, 3, 12,)  # Ridge regularization parameter
     }
 
     grid_search = GridSearchCV(estimator=model_pipeline,
@@ -144,8 +156,9 @@ def model_evaluation(model, X_test, y_test):
 
 def save_model(model, model_path):
     try:
-        dump.joblib(model, model_path)
-        logging.info(f"Model saved successfully.")
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        joblib.dump(model, model_path)
+        logging.info(f"Model saved successfully to {model_path}")
     except Exception as e:
         logging.error(f'Error while saving model file: {str(e)}')
         raise
