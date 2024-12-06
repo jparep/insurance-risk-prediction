@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
@@ -104,6 +104,21 @@ def build_model(preprocessor):
         ('preprocess', preprocessor),
         ('model', LinearRegression())
     ])
+
+def hyperparamter_tuning(pipeline, X_train, y_train):
+    """Tuning hyperparameters"""
+    cv = StratifiedKFold(n_splits=5, shuffle=True, n_jobs=-1)
+    
+    param_grid = {
+        'n_inter': [2,5,10]
+    }
+    
+    grid_search = GridSearchCV(estimator=pipeline,
+                               cv=cv,
+                               n_jobs=-1,
+                               )
+    best_model = grid_search.fit(X_train, y_train)
+    return best_model.best_estimator_
 
 def model_evaluation(model, X_test, y_test):
     """Test the performance of the model"""
