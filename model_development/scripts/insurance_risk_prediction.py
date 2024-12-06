@@ -28,55 +28,57 @@ def load_data(file_path):
         return df
     except Exception as e:
         logging.error(f"Issue loadding data from file {file_path}: {str(e)}")
+        raise
 
 def preprocess_data(df):
     """Preprocess data"""
-    # Remove $ and convert to Int from object
-    df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
-    # Covert negative age values to positives
-    df['age'] = abs(df['age'])
+    try:
+        # Covert negative age values to positives
+        if 'age' in df.columns:
+            df['age'] = df['age'].abs()
     
-    # Convert children to Int from object type
-    df['children'] = df['children'].astype('int64')
-    # Convert neagtive number of children to positive
-    df['children'] = abs(df['children'])
-    
-    # Map sex to male and female
-    sex_mapping = {
-        'female': 'Female',
-        'woman': 'Female',
-        'Woman': 'Female',
-        'F': 'Female',
-        'f': 'Female',
-        'male': 'Male',
-        'man': 'Male',
-        'Man': 'Male',
-        'M': 'Male',
-        'm':'Male',
-        }
+        # Convert children to Int and handle negatives
+        if 'children' in df.columns:
+            df['children'] = df['children'].astype('int64').abs()
+        
+        # Map sex to male and female
+        if 'sex' in df.columns:
+            sex_mapping = {
+                'female': 'Female',
+                'woman': 'Female',
+                'Woman': 'Female',
+                'F': 'Female',
+                'f': 'Female',
+                'male': 'Male',
+                'man': 'Male',
+                'Man': 'Male',
+                'M': 'Male',
+                'm':'Male',
+                }
+            df['sex'] = df['sex'].map(sex_mapping)
 
-    # Appply mapping on sex
-    df['sex'] = df['sex'].map(sex_mapping)
+           # Map Region values
+        if 'region' in df.columns:
+            region_map = {
+                'southwest': 'Southwest',
+                'southeast': 'Southeast',
+                'northwest': 'Northwest',
+                'northeast': 'Northeast'
+            }
+            df['region'] = df['region'].map(region_map)
+        
+        # Remove $, convert to Int andd drop Rows with missing target column values
+        if 'chages' in df.columns:
+            df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
+            df = df.dropna(subset=['charges']).reset_index(drop=True)
     
-    # Map Region
-    region_map = {
-        'southwest': 'Southwest',
-        'southeast': 'Southeast',
-        'northwest': 'Northwest',
-        'northeast': 'Northeast'
-    }
-    # Apply mapping on region
-    df['region'] = df['region'].map(region_map)
+        # Remove reows with more than 5 missing values from 7 columns
+        df = df[df.isnull().sum(axis=1) < 5].reset_index(drop=True)
     
-    # Remove rows that are entirely empty accross the columns
-    df = df.dropna(how='all').reset_index(drop=True)
-    
-    # If 5 out of 7 coulmns as empty values in the same row index, drop them
-    df = df[df.isnull().sum() > 5].reset_index(drop=True)
-    
-    # Remove NAs from target: It will also remove values from features in the same row index
-    df = df.dropna(subset=['target']).set_index(drop=True)
-    return df
+        return df
+    except Exception as e:
+        logging.error(f"Error during preprocessing {str(e)}")
+        raise
 
 def main():
     # Load data
@@ -86,6 +88,7 @@ def main():
         print(df_cleaned.head())
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
+        raise
 
 if __name__=='__main__':
     main()
