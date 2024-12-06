@@ -105,7 +105,7 @@ def build_model(preprocessor):
         ('model', LinearRegression())
     ])
 
-def hyperparamter_tuning(pipeline, X_train, y_train):
+def hyperparamter_tuning(model_pipeline, X_train, y_train):
     """Tuning hyperparameters"""
     cv = StratifiedKFold(n_splits=5, shuffle=True, n_jobs=-1)
     
@@ -113,16 +113,16 @@ def hyperparamter_tuning(pipeline, X_train, y_train):
         'n_inter': [2,5,10]
     }
     
-    grid_search = GridSearchCV(estimator=pipeline,
+    grid_search = GridSearchCV(estimator=model_pipeline,
                                cv=cv,
                                n_jobs=-1,
                                )
     best_model = grid_search.fit(X_train, y_train)
     return best_model.best_estimator_
 
-def model_evaluation(model, X_test, y_test):
+def model_evaluation(best_model, X_test, y_test):
     """Test the performance of the model"""
-    y_pred = model.predict(X_test)
+    y_pred = best_model.predict(X_test)
 
     eval_mx = {
         'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
@@ -154,13 +154,13 @@ def main():
         preprocessor = preprocess_and_transform_data(X)
 
         # Build Model
-        model = build_model(preprocessor)
+        model_pipeline = build_model(preprocessor)
 
-        # Train the model
-        model.fit(X_train, y_train)
+        # Train and tune model
+        best_model = hyperparamter_tuning(model_pipeline, X_train, y_train)
 
         # Evaluate the model
-        model_evaluation(model, X_test, y_test)
+        model_evaluation(best_model, X_test, y_test)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
