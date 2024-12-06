@@ -8,6 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import logging
 
 # Logging Configuration
@@ -104,11 +105,21 @@ def build_model(preprocessor):
         ('preprocess', preprocessor),
         ('model', LinearRegression())
     ])
-    
 
+def model_evaluation(model, X_test, y_test):
+    """Test the performance of the model"""
+    y_pred = model.predict(X_test)
     
+    eval_mx = {
+        'MAE', mean_absolute_error(y_test, y_pred),
+        'MSE', mean_squared_error(y_test, y_pred),
+        'R2', r2_score(y_test, y_pred)
+    }
     
-        
+    # Print the evaluation metric
+    for key, value in eval_mx:
+        print(f"{key}: {value:2.f}%")
+    
 
 def main():
     try:
@@ -122,12 +133,18 @@ def main():
         X = df_cleaned.drop(columns=['charges'], axis=1)
         y = df_cleaned['charges']
         
+        # Train test split
+        X_train, X_tst, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=12)
+        
         # Preprocess and transform data
         preprocessor = preprocess_and_transform_data(X)
+        
+        # Build Model
         model = build_model(preprocessor)
+        
+        # Train the model
+        model.fit(X_train, y_train)
 
-        # Output the cleaned data
-        print(df_cleaned.head())
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
