@@ -5,6 +5,8 @@
 environment.yml
 app.log
 model_development/
+!model_development/models/model_pipeline.joblib
+
 
 # Exclude Python cache files
 __pycache__/
