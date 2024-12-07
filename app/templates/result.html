@@ -1,36 +1,36 @@
 <!DOCTYPE html>
-<html land="en">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device=width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediction Result</title>
     <style>
-        body{
+        body {
             font-family: Arial, sans-serif;
             margin: 50px;
             text-align: center;
         }
-        .result{
+        .result {
             font-size: 1.5em;
             font-weight: bold;
             color: #2d6a4f;
         }
-        .back-link{
+        .back-link {
             margin-top: 20px;
             display: inline-block;
             text-decoration: none;
             font-size: 1em;
             color: #1d3557;
         }
-        .back-link:hover{
+        .back-link:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <h1>Prediction Result</h1>
-    <p>Your predicited insurance cost is:</p>
-    <a href="/" class="blank-link">Make another predicition</a>
+    <p>Your predicted insurance cost is:</p>
+    <p class="result">${{ prediction }}</p>
+    <a href="/" class="back-link">Make another prediction</a>
 </body>
-
 </html>

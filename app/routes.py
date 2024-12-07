@@ -5,7 +5,7 @@ import pandas as pd
 main = Blueprint('main', __name__)
 
 # Load the pre-trained model pipeline
-model_pipeline = joblib.load('../model_development/models/model_pipeline.joblib')
+model_pipeline = joblib.load('./model_development/models/model_pipeline.joblib')
 
 @main.route('/')
 def home():
