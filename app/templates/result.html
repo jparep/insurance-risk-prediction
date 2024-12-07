@@ -4,33 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediction Result</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 50px;
-            text-align: center;
-        }
-        .result {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #2d6a4f;
-        }
-        .back-link {
-            margin-top: 20px;
-            display: inline-block;
-            text-decoration: none;
-            font-size: 1em;
-            color: #1d3557;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <!-- Link Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Prediction Result</h1>
-    <p>Your predicted insurance cost is:</p>
-    <p class="result">${{ prediction }}</p>
-    <a href="/" class="back-link">Make another prediction</a>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
+        <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">Prediction Result</h1>
+        <p class="text-lg text-gray-600 text-center mb-4">Your predicted insurance cost is:</p>
+        <p class="text-3xl font-extrabold text-green-500 text-center mb-6">${{ prediction }}</p>
+        <a href="/" class="block text-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition duration-200">
+            Make another prediction
+        </a>
+    </div>
 </body>
 </html>

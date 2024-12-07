@@ -4,40 +4,115 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insurance Risk Prediction</title>
+    <!-- Include Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Remove spinner (arrows) for number inputs */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield; /* For Firefox */
+        }
+    </style>
 </head>
-<body>
-    <h1>Insurance Risk Prediction</h1>
-    <form action="/predict" method="POST">
-        <label for="age">Age:</label>
-        <input type="number" name="age" id="age" required><br>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-lg w-full">
+        <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">Insurance Risk Prediction</h1>
+        <form action="/predict" method="POST" class="space-y-6">
+            <!-- Age -->
+            <div>
+                <label for="age" class="block text-gray-700 font-medium text-base">Age:(Enter age in whole number)</label>
+                <input type="number" name="age" id="age" required placeholder="Age"
+                    class="mt-2 block w-1/3 h-8 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+            </div>
 
-        <label for="bmi">BMI:</label>
-        <input type="number" name="bmi" id="bmi" step="0.1" required><br>
+            <!-- BMI -->
+            <div>
+                <label for="bmi" class="block text-gray-700 font-medium text-base">BMI: (Enter Body Mass Index score)</label>
+                <input type="number" name="bmi" id="bmi" step="0.1" required placeholder="BMI"
+                    class="mt-2 block w-1/3 h-8 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+            </div>
 
-        <label for="children">Number of Children:</label>
-        <input type="number" name="children" id="children" required><br>
+            <!-- Number of Children -->
+            <div>
+                <label for="children" class="block text-gray-700 font-medium text-base">Number of Children:</label>
+                <input type="number" name="children" id="children" required placeholder="# Children"
+                    class="mt-2 block w-1/3 h-8 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+            </div>
 
-        <label for="smoker">Smoker:</label>
-        <select name="smoker" id="smoker" required>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-        </select><br>
+            <!-- Smoker -->
+            <div>
+                <label class="block text-gray-700 font-medium text-base">Smoker:</label>
+                <div class="mt-2 space-y-2">
+                    <label class="flex items-center">
+                        <input type="radio" name="smoker" value="yes" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Yes</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="smoker" value="no" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">No</span>
+                    </label>
+                </div>
+            </div>
 
-        <label for="sex">Sex:</label>
-        <select name="sex" id="sex" required>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-        </select><br>
+            <!-- Sex -->
+            <div>
+                <label class="block text-gray-700 font-medium text-base">Sex:</label>
+                <div class="mt-2 space-y-2">
+                    <label class="flex items-center">
+                        <input type="radio" name="sex" value="female" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Female</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="sex" value="male" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Male</span>
+                    </label>
+                </div>
+            </div>
 
-        <label for="region">Region:</label>
-        <select name="region" id="region" required>
-            <option value="southwest">Southwest</option>
-            <option value="southeast">Southeast</option>
-            <option value="northwest">Northwest</option>
-            <option value="northeast">Northeast</option>
-        </select><br>
+            <!-- Region -->
+            <div>
+                <label class="block text-gray-700 font-medium text-base">Region:</label>
+                <div class="mt-2 space-y-2">
+                    <label class="flex items-center">
+                        <input type="radio" name="region" value="southwest" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Southwest</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="region" value="southeast" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Southeast</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="region" value="northwest" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Northwest</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="region" value="northeast" required
+                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">Northeast</span>
+                    </label>
+                </div>
+            </div>
 
-        <button type="submit">Predict</button>
-    </form>
+            <!-- Submit Button -->
+            <div>
+                <button type="submit"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                    Predict
+                </button>
+            </div>
+        </form>
+    </div>
 </body>
 </html>
