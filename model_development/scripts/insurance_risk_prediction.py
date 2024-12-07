@@ -1,4 +1,3 @@
-# Import libraries
 import os
 import pandas as pd
 import numpy as np
@@ -17,26 +16,15 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     level=logging.INFO,
                     handlers=[logging.StreamHandler(), logging.FileHandler('app.log')])
 
-# File directory
+# File paths
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-
-# Data file path
 FILE_PATH = os.path.join(DIR, 'data', 'insurance.csv')
-MODEL_PATH = os.path.join(DIR, 'models', 'model.joblib')
+MODEL_PATH = os.path.join(DIR, 'models', 'model_pipeline.joblib')
+
 
 def load_data(file_path):
     """
     Loads data from a CSV file into a pandas DataFrame.
-
-    Args:
-        file_path (str): Path to the CSV file.
-
-    Returns:
-        pandas.DataFrame: Loaded dataset.
-
-    Raises:
-        FileNotFoundError: If the file is not found.
-        Exception: For any other issues during file loading.
     """
     try:
         df = pd.read_csv(file_path)
@@ -46,70 +34,48 @@ def load_data(file_path):
         logging.error(f"Error loading data from file {file_path}: {str(e)}")
         raise
 
+
 def clean_data(df):
     """
-    Cleans the input DataFrame by validating required columns, handling missing values,
-    and transforming specific columns.
-
-    Args:
-        df (pandas.DataFrame): Raw dataset.
-
-    Returns:
-        pandas.DataFrame: Cleaned dataset.
-
-    Raises:
-        ValueError: If required columns are missing.
-        Exception: For any issues during data cleaning.
+    Cleans the input DataFrame by validating required columns and transforming specific columns.
     """
     try:
-        required_columns = ['age', 'children', 'sex', 'region', 'charges']
+        required_columns = ['age', 'bmi', 'children', 'sex', 'region', 'charges']
         missing_cols = set(required_columns) - set(df.columns)
-        
+
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
-        
-        if 'age' in df.columns:
-            df['age'] = df['age'].abs()
-        
-        if 'children' in df.columns:
-            df['children'] = df['children'].astype('Int64').abs()
-        
-        if 'sex' in df.columns:
-            sex_mapping = {
-                'female': 'Female', 'woman': 'Female', 'Woman': 'Female',
-                'F': 'Female', 'f': 'Female', 'male': 'Male',
-                'man': 'Male', 'Man': 'Male', 'M': 'Male', 'm': 'Male',
-            }
-            df['sex'] = df['sex'].map(sex_mapping)
 
-        if 'region' in df.columns:
-            region_map = {
-                'southwest': 'Southwest', 'southeast': 'Southeast',
-                'northwest': 'Northwest', 'northeast': 'Northeast'
-            }
-            df['region'] = df['region'].map(region_map)
-        
-        if 'charges' in df.columns:
-            df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
-            df = df.dropna(subset=['charges']).reset_index(drop=True)
-        
-        df = df[df.isnull().sum(axis=1) <= 5].reset_index(drop=True)
+        # Absolute values for age and children
+        df['age'] = df['age'].abs()
+        df['children'] = df['children'].astype('Int64').abs()
 
-        logging.info("Data preprocessing completed successfully.")
+        # Map sex and region
+        sex_mapping = {
+            'female': 'Female', 'woman': 'Female', 'F': 'Female', 'f': 'Female',
+            'male': 'Male', 'man': 'Male', 'M': 'Male', 'm': 'Male'
+        }
+        region_mapping = {
+            'southwest': 'Southwest', 'southeast': 'Southeast',
+            'northwest': 'Northwest', 'northeast': 'Northeast'
+        }
+        df['sex'] = df['sex'].map(sex_mapping)
+        df['region'] = df['region'].map(region_mapping)
+
+        # Clean charges and drop NA rows
+        df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
+        df = df.dropna().reset_index(drop=True)
+
+        logging.info("Data cleaning completed successfully.")
         return df
     except Exception as e:
         logging.error(f"Error during data cleaning: {str(e)}")
         raise
 
+
 def preprocess_and_transform_data(X):
     """
     Preprocesses numerical and categorical features using a pipeline.
-
-    Args:
-        X (pandas.DataFrame): Features dataset.
-
-    Returns:
-        sklearn.compose.ColumnTransformer: Preprocessing pipeline.
     """
     num_columns = X.select_dtypes(include=['int64', 'Int64', 'float64']).columns
     cat_columns = X.select_dtypes(include=['object']).columns
@@ -131,91 +97,79 @@ def preprocess_and_transform_data(X):
 
     return preprocessor
 
+
 def build_model(preprocessor):
     """
     Builds a machine learning model pipeline.
-
-    Args:
-        preprocessor (ColumnTransformer): Preprocessing pipeline.
-
-    Returns:
-        sklearn.pipeline.Pipeline: Complete model pipeline.
     """
     return Pipeline([
         ('preprocess', preprocessor),
         ('model', Ridge())
     ])
 
+
 def hyperparameter_tuning(model_pipeline, X_train, y_train):
     """
-    Performs hyperparameter tuning using grid search.
-
-    Args:
-        model_pipeline (Pipeline): Model pipeline to tune.
-        X_train (pandas.DataFrame): Training features.
-        y_train (pandas.Series): Training target variable.
-
-    Returns:
-        sklearn.pipeline.Pipeline: Best model pipeline after tuning.
+    Performs hyperparameter tuning using grid search and reintegrates the tuned model
+    into the pipeline.
     """
-    cv = KFold(n_splits=5, shuffle=True, random_state=12)
+    # Ensure the pipeline is fitted before hyperparameter tuning
+    model_pipeline.fit(X_train, y_train)
 
+    # Define cross-validation and hyperparameter grid
+    cv = KFold(n_splits=5, shuffle=True, random_state=12)
     param_grid = {
         'model__alpha': np.logspace(-3, 3, 12)
     }
 
+    # Perform grid search
     grid_search = GridSearchCV(estimator=model_pipeline,
                                param_grid=param_grid,
                                scoring='r2',
                                cv=cv,
                                n_jobs=-1)
     grid_search.fit(X_train, y_train)
+
     logging.info(f"Best parameters: {grid_search.best_params_}")
-    return grid_search.best_estimator_
 
-def model_evaluation(model, X_test, y_test):
+    # Extract the best model and reintegrate it into the pipeline
+    best_model = grid_search.best_estimator_.named_steps['model']
+    final_pipeline = Pipeline([
+        ('preprocess', model_pipeline.named_steps['preprocess']),
+        ('model', best_model)
+    ])
+
+    return final_pipeline
+
+
+def model_evaluation(model_pipeline, X_test, y_test):
     """
-    Evaluates the performance of the model.
-
-    Args:
-        model (Pipeline): Trained model pipeline.
-        X_test (pandas.DataFrame): Test features.
-        y_test (pandas.Series): Test target variable.
-
-    Returns:
-        None
+    Evaluates the performance of the model pipeline.
     """
-    y_pred = model.predict(X_test)
-
-    eval_mx = {
+    y_pred = model_pipeline.predict(X_test)
+    eval_metrics = {
         'Mean Absolute Error (MAE)': mean_absolute_error(y_test, y_pred),
         'Mean Squared Error (MSE)': mean_squared_error(y_test, y_pred),
-        'R-squared (R2)': r2_score(y_test, y_pred),
-        'R-squared (R2) Percentage': r2_score(y_test, y_pred) * 100
+        'R-squared (R2)': r2_score(y_test, y_pred)
     }
 
-    print("\nModel Evaluation Metrics:")
-    for metric, value in eval_mx.items():
-        print(f"{metric}: {value:.2f}")
+    logging.info("Model Evaluation Metrics:")
+    for metric, value in eval_metrics.items():
+        logging.info(f"{metric}: {value:.2f}")
 
-def save_model(model, model_path):
+
+def save_model_pipeline(model_pipeline, model_path):
     """
-    Saves the trained model to a file.
-
-    Args:
-        model (Pipeline): Trained model.
-        model_path (str): File path to save the model.
-
-    Returns:
-        None
+    Saves the complete model pipeline (preprocessing + model) to a file.
     """
     try:
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
-        joblib.dump(model, model_path)
-        logging.info(f"Model saved successfully to {model_path}")
+        joblib.dump(model_pipeline, model_path)
+        logging.info(f"Model pipeline saved successfully to {model_path}")
     except Exception as e:
-        logging.error(f"Error while saving model file: {str(e)}")
+        logging.error(f"Error while saving pipeline: {str(e)}")
         raise
+
 
 def main():
     """
@@ -225,22 +179,34 @@ def main():
     - Preprocess data
     - Train and tune model
     - Evaluate model
-    - Save model
+    - Save pipeline (preprocessing + tuned model)
     """
     try:
+        # Load and clean data
         df = load_data(FILE_PATH)
         df_cleaned = clean_data(df)
+
+        # Split into features and target
         X = df_cleaned.drop(columns=['charges'], axis=1)
         y = df_cleaned['charges']
+
+        # Train-test split
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=12)
+
+        # Build pipeline and tune hyperparameters
         preprocessor = preprocess_and_transform_data(X)
         model_pipeline = build_model(preprocessor)
-        best_model = hyperparameter_tuning(model_pipeline, X_train, y_train)
-        model_evaluation(best_model, X_test, y_test)
-        save_model(best_model, MODEL_PATH)
+        final_pipeline = hyperparameter_tuning(model_pipeline, X_train, y_train)
+
+        # Save the complete pipeline
+        save_model_pipeline(final_pipeline, MODEL_PATH)
+
+        # Evaluate the model
+        model_evaluation(final_pipeline, X_test, y_test)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
+
 
 if __name__ == '__main__':
     main()
