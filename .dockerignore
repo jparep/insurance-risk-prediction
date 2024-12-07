@@ -1,0 +1,76 @@
+# Exclude sensitive or unnecessary files
+.env
+.git
+.gitignore
+environment.yml
+app.log
+model_development/
+
+# Exclude Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Exclude IDE-related files
+*.vscode/
+.DS_Store
+
+# Python specific
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment and dependencies
+env/
+venv/
+*.egg-info/
+*.egg
+*.whl
+pip-log.txt
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Configuration files
+*.ini
+*.cfg
+
+# Datasets
+data/
+*.csv
+*.xlsx
+*.json
+*.parquet
+*.h5
+
+# Logs and output
+logs/
+*.log
+*.out
+*.err
+
+# Model artifacts (exclude only if not used in production)
+models/
+*.h5
+*.pkl
+*.sav
+*.onnx
+
+# Temporary or backup files
+*.bak
+*.tmp
+*.swp
+*.DS_Store
+Thumbs.db
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Build files
+build/
+dist/
+*.manifest
+*.spec
