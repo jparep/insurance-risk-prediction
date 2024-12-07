@@ -36,7 +36,11 @@ logs/
 *.err
 
 # Model artifacts
-models/
+# Ignore everything in the models/ directory
+# Except for model_pipeline.joblib
+models/*
+!models/model_pipeline.joblib
+
 *.h5
 *.pkl
 *.joblib
