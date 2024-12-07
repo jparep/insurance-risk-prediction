@@ -18,25 +18,27 @@ def predict():
         age = int(request.form['age'])
         bmi = float(request.form['bmi'])
         children = int(request.form['children'])
-        smoker = 1 if request.form['smoker'] == 'yes' else 0  # Fixed typo in 'smkoer'
+        smoker = 1 if request.form['smoker'] == 'yes' else 0
         sex = request.form['sex']
         region = request.form['region']
 
-        # Prepare input as a DataFrame
-        input_data = pd.DataFrame({
+        # Prepare input data
+        input_data = {
             'age': [age],
             'bmi': [bmi],
             'children': [children],
             'smoker': [smoker],
             'sex': [sex],
-            'region': [region]
-        })
+            'region': [region],
+        }
 
-        # Prediction using the loaded pipeline
-        prediction = model_pipeline.predict(input_data)[0]
+        # Predict using the model pipeline
+        prediction = model_pipeline.predict(pd.DataFrame(input_data))[0]
 
-        return render_template('result.html', prediction=round(prediction, 2))
+        # Format prediction with comma as a thousands separator
+        formatted_prediction = f"{prediction:,.2f}"
 
+        return render_template('result.html', prediction=formatted_prediction)
+    
     except Exception as e:
-        # Log or display the error for debugging
-        return render_template('error.html', error_message=str(e))
+        return f"An error occurred: {str(e)}"
