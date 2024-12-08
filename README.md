@@ -279,7 +279,7 @@ The application is deployed on **Render**. Deployment involves:
 - **Environment Variables**:
   - `MODEL_PATH`: Path to the trained model file.
   - `FLASK_ENV`: `production`.
-- Deployment URL: [Your Render App URL](https://your-app-name.onrender.com)
+- Deployment URL: [Render App URL](https://insurance-risk-prediction.onrender.com)
 
 ---
 
@@ -293,7 +293,7 @@ The application is deployed on **Render**. Deployment involves:
 ### **Setup**
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/insurance-risk-prediction.git
+   git clone https://github.com/jparep/insurance-risk-prediction.git
    cd insurance-risk-prediction
 
     Create a virtual environment and activate it:
@@ -313,21 +313,20 @@ Run the Flask API:
 
     python src/app.py
 
-Usage
+
+
+## Usage
 API Usage
 
-    Run the Flask server locally:
-
-    python src/app.py
-
     Access the API:
-        Open your browser at http://127.0.0.1:5000/.
+        Open your browser at https://insurance-risk-prediction.onrender.com
         Use /predict endpoint to predict charges.
 
 Frontend Usage
 
     Enter the required details (age, BMI, children, etc.).
     Submit the form to get the predicted insurance charges.
+
 
 ## Future Enhancements
 
@@ -337,6 +336,7 @@ Frontend Usage
     4. Migrate to AWS for scalable deployment with Lambda and API Gateway.
     5. Introduce authentication for API access.
 
+
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](#).
