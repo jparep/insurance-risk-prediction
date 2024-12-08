@@ -1,3 +1,4 @@
+# Import libraries
 import os
 import pandas as pd
 import numpy as np
@@ -20,6 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 FILE_PATH = os.path.join(DIR, 'data', 'insurance.csv')
 MODEL_PATH = os.path.join(DIR, 'models', 'model_pipeline.joblib')
+VALIDATION_FILE_PATH = os.path.join(DIR, 'data', 'validation_dataset.csv')
 
 
 def load_data(file_path):
@@ -40,7 +42,7 @@ def clean_data(df):
     Cleans the input DataFrame by validating required columns and transforming specific columns.
     """
     try:
-        required_columns = ['age', 'bmi', 'children', 'sex', 'region', 'charges']
+        required_columns = ['age', 'bmi', 'children', 'sex', 'region']
         missing_cols = set(required_columns) - set(df.columns)
 
         if missing_cols:
@@ -62,8 +64,7 @@ def clean_data(df):
         df['sex'] = df['sex'].map(sex_mapping)
         df['region'] = df['region'].map(region_mapping)
 
-        # Clean charges and drop NA rows
-        df['charges'] = df['charges'].replace({'\$': ''}, regex=True).astype(float)
+        # Remove rows with excessive missing values
         df = df.dropna().reset_index(drop=True)
 
         logging.info("Data cleaning completed successfully.")
@@ -110,36 +111,21 @@ def build_model(preprocessor):
 
 def hyperparameter_tuning(model_pipeline, X_train, y_train):
     """
-    Performs hyperparameter tuning using grid search and reintegrates the tuned model
-    into the pipeline.
+    Performs hyperparameter tuning using grid search.
     """
-    # Ensure the pipeline is fitted before hyperparameter tuning
-    model_pipeline.fit(X_train, y_train)
-
-    # Define cross-validation and hyperparameter grid
     cv = KFold(n_splits=5, shuffle=True, random_state=12)
     param_grid = {
         'model__alpha': np.logspace(-3, 3, 12)
     }
 
-    # Perform grid search
     grid_search = GridSearchCV(estimator=model_pipeline,
                                param_grid=param_grid,
                                scoring='r2',
                                cv=cv,
                                n_jobs=-1)
     grid_search.fit(X_train, y_train)
-
     logging.info(f"Best parameters: {grid_search.best_params_}")
-
-    # Extract the best model and reintegrate it into the pipeline
-    best_model = grid_search.best_estimator_.named_steps['model']
-    final_pipeline = Pipeline([
-        ('preprocess', model_pipeline.named_steps['preprocess']),
-        ('model', best_model)
-    ])
-
-    return final_pipeline
+    return grid_search.best_estimator_
 
 
 def model_evaluation(model_pipeline, X_test, y_test):
@@ -158,6 +144,39 @@ def model_evaluation(model_pipeline, X_test, y_test):
         logging.info(f"{metric}: {value:.2f}")
 
 
+def validate_model_on_feature_only_set(model_pipeline, validation_file_path):
+    """
+    Validates the model on a separate validation dataset with only features (no target column).
+
+    Args:
+        model_pipeline (Pipeline): Trained model pipeline.
+        validation_file_path (str): Path to the validation dataset (features only).
+
+    Returns:
+        None
+    """
+    try:
+        # Load and preprocess validation data
+        validation_df = load_data(validation_file_path)
+        validation_df_cleaned = clean_data(validation_df)
+
+        # Ensure validation data matches the feature set
+        X_validation = validation_df_cleaned
+
+        # Perform predictions
+        logging.info("Validating model on feature-only validation dataset...")
+        predictions = model_pipeline.predict(X_validation)
+
+        # Display sample predictions
+        logging.info(f"Sample Predictions:\n{predictions[:10]}")
+        print("Sample Predictions:")
+        print(predictions[:10])
+
+    except Exception as e:
+        logging.error(f"Error during validation on feature-only set: {str(e)}")
+        raise
+
+
 def save_model_pipeline(model_pipeline, model_path):
     """
     Saves the complete model pipeline (preprocessing + model) to a file.
@@ -173,16 +192,17 @@ def save_model_pipeline(model_pipeline, model_path):
 
 def main():
     """
-    Main function to execute the entire pipeline:
+    Main function to execute the pipeline:
     - Load data
     - Clean data
     - Preprocess data
     - Train and tune model
     - Evaluate model
+    - Validate on feature-only dataset
     - Save pipeline (preprocessing + tuned model)
     """
     try:
-        # Load and clean data
+        # Load and clean training data
         df = load_data(FILE_PATH)
         df_cleaned = clean_data(df)
 
@@ -201,8 +221,12 @@ def main():
         # Save the complete pipeline
         save_model_pipeline(final_pipeline, MODEL_PATH)
 
-        # Evaluate the model
+        # Evaluate the model on the test dataset
+        logging.info("Evaluating model on test dataset...")
         model_evaluation(final_pipeline, X_test, y_test)
+
+        # Validate the model on the feature-only validation dataset
+        validate_model_on_feature_only_set(final_pipeline, VALIDATION_FILE_PATH)
     except Exception as e:
         logging.critical(f"Error in main: {str(e)}")
         raise
